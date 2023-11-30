@@ -282,6 +282,7 @@ Once you have installed Debian on your nodes, there are six stages to getting a 
     task ansible:ping
     ```
 
+
 4. Run the Ansible prepare playbook (nodes wil reboot when done)
 
     ```sh

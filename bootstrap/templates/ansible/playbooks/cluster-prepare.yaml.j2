@@ -78,6 +78,13 @@
             dest: /etc/systemd/networkd.conf
             regexp: ManageForeignRoutes
             line: ManageForeignRoutes=no
+        # Fix 'rm: cannot remove '/etc/resolv.conf': Operation not permitted'
+        # https://support.tools/post/fix-stuck-resolv-conf/
+        - name: chattr -ie
+          become: true
+          ansible.builtin.file:
+            attributes: -ie
+            path: /etc/resolv.conf
         # https://github.com/onedr0p/flux-cluster-template/discussions/635
         - name: Network Configuration | Remove /etc/resolv.conf
           ansible.builtin.file:

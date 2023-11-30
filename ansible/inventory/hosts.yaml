@@ -1,0 +1,28 @@
+---
+kubernetes:
+  children:
+    master:
+      hosts:
+        k3s-m1:
+          ansible_user: sinless777
+          ansible_host: 192.168.86.100
+        k3s-m2:
+          ansible_user: sinless777
+          ansible_host: 192.168.86.101
+        k3s-m3:
+          ansible_user: sinless777
+          ansible_host: 192.168.86.102
+    worker:
+      hosts:
+        k3s-s1:
+          ansible_user: sinless777
+          ansible_host: 192.168.86.150
+        k3s-s2:
+          ansible_user: sinless777
+          ansible_host: 192.168.86.151
+        k3s-s3:
+          ansible_user: sinless777
+          ansible_host: 192.168.86.152
+        k3s-s4:
+          ansible_user: sinless777
+          ansible_host: 192.168.86.153
