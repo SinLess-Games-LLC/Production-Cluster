@@ -1,0 +1,88 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: cluster-apps-flagger
+  namespace: ci-cd-system
+spec:
+  interval: 1h
+  releaseName: flagger
+  install: # override existing Flagger CRDs
+    crds: CreateReplace
+  upgrade: # update Flagger CRDs
+    crds: CreateReplace
+  chart:
+    spec:
+      chart: flagger
+      version: 1.x # update Flagger to the latest minor version
+      interval: 6h # scan for new versions every six hours
+      sourceRef:
+        kind: HelmRepository
+        name: flagger
+        namespace: flux-system
+      verify: # verify the chart signature with Cosign keyless
+        provider: cosign
+  values:
+    image:
+      repository: ghcr.io/fluxcd/flagger
+      tag: 1.34.0
+      pullPolicy: IfNotPresent
+
+    podAnnotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8080"
+      appmesh.k8s.aws/sidecarInjectorWebhook: disabled
+      linkerd.io/inject: enabled
+
+    metricsServer: "https://prometheus.${SECRET_DOMAIN}"
+    clusterName: home-kubernetes
+    # accepted values are kubernetes, istio, linkerd, appmesh, contour, nginx, gloo, skipper, traefik, apisix, osm
+    meshProvider: nginx
+
+    # single namespace restriction
+    namespace: ""
+    ingressClass: internal
+    ingress:
+      enabled:
+      ingressClassName: internal
+      annotations:
+        hajimari.io/icon: simple-icons:grafana
+      hostName: &host "jenkins.${SECRET_DOMAIN}"
+      tls:
+        - hosts:
+            - *host
+
+    nodeSelector:
+      kubernetes.io/os: linux
+
+    podMonitor:
+      enabled: false
+      namespace:
+      interval: 15s
+      additionalLabels: { }
+
+    serviceAccount:
+      # serviceAccount.create: Whether to create a service account or not
+      create: true
+      # serviceAccount.name: The name of the service account to create or use
+      name: ""
+      # serviceAccount.annotations: Annotations for service account
+      annotations: { }
+
+    rbac:
+      # rbac.create: `true` if rbac resources should be created
+      create: true
+      # rbac.pspEnabled: `true` if PodSecurityPolicy resources should be created
+      pspEnabled: false
+
+    crd:
+      # crd.create: `true` if custom resource definitions should be created
+      create: false
+
+    resources:
+      limits:
+        memory: "512Mi"
+        cpu: "1000m"
+      requests:
+        memory: "32Mi"
+        cpu: "10m"

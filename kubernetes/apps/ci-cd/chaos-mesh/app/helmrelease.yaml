@@ -1,0 +1,63 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: chaos-mesh
+  namespace: ci-cd-system
+spec:
+  interval: 1m
+  chart:
+    spec:
+      chart: chaos-mesh
+      sourceRef:
+        kind: HelmRepository
+        name: chaos-mesh
+        namespace: flux-system
+  maxHistory: 2
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  dependsOn:
+    - name: local-path-provisioner
+      namespace: kube-system
+  values:
+    timezone: "America/Denver"
+
+    chaosDaemon:
+      runtime: containerd
+      socketPath: '/run/k3s/containerd/containerd.sock'
+
+
+    dashboard:
+      # Enable dashboard
+      enabled: true
+      replicaCount: 3
+      rootUrl: "https://chaos-mesh.${SECRET_DOMAIN}"
+      securityMode: false
+
+      service:
+        type: ClusterIP
+
+      ingress:
+        enabled: true
+        ingressClass: internal
+        hosts:
+          - name: "chaos-mesh.${SECRET_DOMAIN}"
+            tls: true
+        annotations:
+          hajimari.io/icon: simple-icons:grafana
+
+      persistentVolume:
+        enabled: true
+        storageClassName: local-path
+        size: 5Gi
+
+    webhook:
+      certManager:
+        enabled: true

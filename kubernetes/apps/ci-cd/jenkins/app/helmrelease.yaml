@@ -1,0 +1,210 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: jenkins # Name of the HelmRelease resource
+  namespace: ci-cd-system
+spec:
+  interval: 1m
+  chart:
+    spec:
+      chart: jenkins
+      version: 4.8.4
+      sourceRef:
+        kind: HelmRepository
+        name: jenkins
+        namespace: flux-system
+  maxHistory: 2
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  dependsOn:
+    - name: local-path-provisioner
+      namespace: kube-system
+  values:
+    controller:
+      # Used for label app.kubernetes.io/component
+      componentName: "jenkins-controller"
+      image: "jenkins/jenkins"
+      servicePort: 8080
+      targetPort: 8080
+      numExecutors: 0
+
+      # This values should not be changed unless you use your custom image of jenkins or any devired from. If you want to use
+      # Cloudbees Jenkins Distribution docker, you should set jenkinsHome: "/var/cloudbees-jenkins-distribution"
+      jenkinsHome: "/var/jenkins_home"
+
+      # List of plugins to be install during Jenkins controller start
+      installPlugins:
+        - kubernetes:4054.v2da_8e2794884
+        - workflow-aggregator:596.v8c21c963d92d
+        - git:5.2.1
+        - configuration-as-code:1737.v652ee9b_a_e0d9
+        - kubernetes-pipeline-devops-steps:1.6
+        - command-launcher:107.v773860566e2e
+        - jdk-tool:73.vddf737284550
+      # additionalPlugins: []
+        # - instance-identity:185.v303dc7c645f9
+        # - docker-pipeline:572.v950f58993843
+        # - theme-manager:215.vc1ff18d67920
+        # - discord-notifier:241.v448b_ccd0c0d6
+
+      # Set too false to download the minimum required version of all dependencies.
+      installLatestPlugins: true
+
+      jenkinsUrlProtocol: "https"
+      jenkinsUrl: "https://jenkins.${SECRET_DOMAIN}"
+
+      resources:
+        requests:
+          cpu: "50m"
+          memory: "256Mi"
+        limits:
+          cpu: "2000m"
+          memory: "4096Mi"
+
+      # Name of default cloud configuration.
+      cloudName: "home-kubernetes"
+
+      JCasC:
+        defaultConfig: true
+        configScripts:
+          welcome-message: |
+            jenkins:
+              systemMessage: Welcome to our CI\CD server.  This Jenkins is configured and managed 'as code'.
+
+
+      ingress:
+        enabled: true
+        ingressClassName: internal
+        annotations:
+          hajimari.io/icon: simple-icons:grafana
+        hostName: &host "jenkins.${SECRET_DOMAIN}"
+        tls:
+          - hosts:
+            - *host
+
+    agent:
+      enabled: true
+      namespace: ci-cd-system
+      containerCap: 20
+      jenkinsUrl: "https://jenkins.${SECRET_DOMAIN}"
+      image: "jenkins/jnlp-agent.yaml"
+      podName: jenkins-agent.yaml
+      privileged: true
+
+      podTemplates:
+        python: |
+          - name: python
+            label: jenkins-python
+            serviceAccount: jenkins
+            containers:
+              - name: python
+                image: python:3
+                command: "/bin/sh -c"
+                args: "cat"
+                ttyEnabled: true
+                privileged: true
+                resourceRequestCpu: "400m"
+                resourceRequestMemory: "512Mi"
+                resourceLimitCpu: "1"
+                resourceLimitMemory: "1024Mi"
+        nodejs: |
+          - name: nodejs
+            label: jenkins-nodejs
+            serviceAccount: jenkins
+            containers:
+              - name: nodejs
+                image: node:21
+                command: "/bin/sh -c"
+                args: "cat"
+                ttyEnabled: true
+                privileged: true
+                resourceRequestCpu: "400m"
+                resourceRequestMemory: "512Mi"
+                resourceLimitCpu: "1"
+                resourceLimitMemory: "1024Mi"
+        docker: |
+          - name: docker
+            label: jenkins-docker
+            serviceAccount: jenkins
+            containers:
+              - name: docker
+                image: docker:24
+                command: "/bin/sh -c"
+                args: "cat"
+                ttyEnabled: true
+                privileged: true
+                resourceRequestCpu: "400m"
+                resourceRequestMemory: "512Mi"
+                resourceLimitCpu: "1"
+                resourceLimitMemory: "1024Mi"
+        maven: |
+          - name: maven
+            label: jenkins-maven
+            serviceAccount: jenkins
+            containers:
+              - name: maven
+                image: maven:3.8.6-openjdk-11
+                command: "/bin/sh -c"
+                args: "cat"
+                ttyEnabled: true
+                privileged: true
+                resourceRequestCpu: "400m"
+                resourceRequestMemory: "512Mi"
+                resourceLimitCpu: "1"
+                resourceLimitMemory: "1024Mi"
+
+      additionalAgents:
+        maven:
+          podName: maven
+          customJenkinsLabels: maven
+          image: jenkins/jnlp-agent.yaml-maven
+          tag: latest
+        python:
+          podName: python
+          customJenkinsLabels: python
+          sideContainerName: python
+          image: python
+          tag: latest
+          command: "/bin/sh -c"
+          args: "cat"
+          TTYEnabled: true
+        docker:
+          podName: docker
+          customJenkinsLabels: docker
+          sideContainerName: docker
+          image: docker
+          tag: latest
+          command: "/bin/sh -c"
+          args: "cat"
+          TTYEnabled: true
+        nodejs:
+          podName: nodejs
+          customJenkinsLabels: nodejs
+          sideContainerName: nodejs
+          image: node
+          tag: latest
+          command: "/bin/sh -c"
+          args: "cat"
+          TTYEnabled: true
+
+    persistence:
+      enabled: true
+      storageClass: local-path
+
+    prometheus:
+      enabled: true
+
+    rbac:
+      create: true
+      readSecrets: true
+

@@ -4,13 +4,13 @@ creation_rules:
     encrypted_regex: "^(data|stringData)$"
     key_groups:
       - age:
-          - "age1m3h2frux0um302a9k8qww9ssmxkm9gjf4hs6crwyl9fd77n27duq5wq37y"
+          - "age1584w9hjcuz39gn5rkz0qczhe9gwqlkvjvag6njs62k6pv2sr4q4se59ys2"
   - path_regex: ansible/.*\.sops\.ya?ml
     key_groups:
       - age:
-          - "age1m3h2frux0um302a9k8qww9ssmxkm9gjf4hs6crwyl9fd77n27duq5wq37y"
+          - "age1584w9hjcuz39gn5rkz0qczhe9gwqlkvjvag6njs62k6pv2sr4q4se59ys2"
   # https://github.com/ansible-collections/community.sops/issues/153
   - path_regex: /dev/stdin
     key_groups:
       - age:
-          - "age1m3h2frux0um302a9k8qww9ssmxkm9gjf4hs6crwyl9fd77n27duq5wq37y"
+          - "age1584w9hjcuz39gn5rkz0qczhe9gwqlkvjvag6njs62k6pv2sr4q4se59ys2"
